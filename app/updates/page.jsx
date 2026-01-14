@@ -1,6 +1,5 @@
 'use client';
-
-import { useEffect, useState } from 'react';  
+ 
 import UpdateCard from "../components/UpdateCard";
 
 export default function UpdatesPage() {

@@ -1,16 +1,7 @@
 
 'use client';
 
-type UpdateProps = {
-    id: number;
-    title: string;
-    content: string;
-    priority: string;
-    pinned: boolean;
-    created_at: string;
-};
-
-export default function UpdateCard({ update_props }: { update_props: UpdateProps }) {
+export default function UpdateCard({ update_props }) {
     const { title, content, priority, pinned, created_at } = update_props;
 
     // border color 
