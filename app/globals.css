@@ -1,8 +1,18 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #fdf2ff;
+  --foreground: #0a0a0f;
+  --muted: #414156;
+  --card: #ffffff;
+  --border: #e0d5ff;
+  --primary: #ff2fd3;
+  --primary-dark: #c400a9;
+  --accent: #23e6ff;
+  --success: #12f7c0;
+  --error: #ff5c8a;
+  --glow-strong: 0 0 24px rgba(255, 47, 211, 0.55), 0 0 48px rgba(35, 230, 255, 0.35);
+  --glow-soft: 0 10px 50px rgba(255, 47, 211, 0.18), 0 20px 80px rgba(35, 230, 255, 0.22);
 }
 
 @theme inline {
@@ -14,13 +24,119 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: #040008;
+    --foreground: #f8e9ff;
+    --muted: #cbb4ff;
+    --card: #0a0213;
+    --border: #2b123d;
+    --primary: #ff40f3;
+    --primary-dark: #b500b4;
+    --accent: #21f6ff;
+    --success: #34f5c3;
+    --error: #ff6f9f;
+    --glow-strong: 0 0 32px rgba(255, 64, 243, 0.65), 0 0 64px rgba(33, 246, 255, 0.4);
+    --glow-soft: 0 12px 60px rgba(255, 64, 243, 0.22), 0 24px 100px rgba(33, 246, 255, 0.26);
   }
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 body {
-  background: var(--background);
+  background: radial-gradient(circle at 18% 20%, rgba(255, 47, 211, 0.18), transparent 38%),
+    radial-gradient(circle at 78% 8%, rgba(35, 230, 255, 0.22), transparent 36%),
+    radial-gradient(circle at 50% 80%, rgba(13, 12, 34, 0.36), transparent 50%),
+    var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  transition: background-color 0.3s ease, color 0.3s ease;
+  min-height: 100vh;
+  position: relative;
+  overflow-x: hidden;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.03),
+    rgba(255, 255, 255, 0.03) 1px,
+    rgba(0, 0, 0, 0) 1px,
+    rgba(0, 0, 0, 0) 3px
+  );
+  mix-blend-mode: overlay;
+  opacity: 0.35;
+}
+
+a {
+  color: inherit;
+}
+
+.neon-link {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  transition: color 0.2s ease, text-shadow 0.2s ease;
+}
+
+.neon-link::after {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border-radius: 0.75rem;
+  border: 1px solid transparent;
+  transition: box-shadow 0.25s ease, border-color 0.25s ease;
+}
+
+.neon-link:hover {
+  color: #ff40f3;
+  text-shadow: 0 0 12px rgba(255, 64, 243, 0.7), 0 0 18px rgba(33, 246, 255, 0.55);
+}
+
+.neon-link:hover::after {
+  border-color: rgba(33, 246, 255, 0.6);
+  box-shadow: 0 0 14px rgba(255, 64, 243, 0.6), 0 0 18px rgba(33, 246, 255, 0.5);
+}
+
+/* Card utility for non-Tailwind contexts */
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  padding: 1.5rem;
+  box-shadow: var(--glow-soft);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--glow-strong);
+  border-color: rgba(255, 47, 211, 0.4);
+}
+
+.glass {
+  background: linear-gradient(120deg, rgba(255, 255, 255, 0.7), rgba(47, 47, 47, 0.13));
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  backdrop-filter: blur(16px);
+  box-shadow: var(--glow-soft);
+}
+
+.dark .glass {
+  background: linear-gradient(120deg, rgba(198, 198, 198, 0.234), rgba(22, 7, 33, 0.295));
+  border: 1px solid rgba(255, 64, 243, 0.35);
+  box-shadow: var(--glow-soft);
+}
+
+.neon-cta {
+  box-shadow: 0 0 24px rgba(255, 47, 211, 0.55), 0 0 32px rgba(35, 230, 255, 0.35);
+}
+
+.neon-border {
+  border-color: rgba(255, 47, 211, 0.55) !important;
+  box-shadow: 0 0 16px rgba(255, 47, 211, 0.35), inset 0 0 12px rgba(33, 246, 255, 0.22);
 }
