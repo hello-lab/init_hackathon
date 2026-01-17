@@ -108,7 +108,7 @@ export default function Navbar() {
               {user ? (
                 <li>
                   <a 
-                    href="/account" 
+                    href="/dashboard" 
                     className="btn-dashboard"
                   >
                     Dashboard

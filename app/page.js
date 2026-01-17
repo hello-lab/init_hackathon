@@ -18,6 +18,7 @@ import {
   ChevronDown
 } from 'lucide-react';
 import { LiquidGlass } from '@liquidglass/react';
+
 // --- 3D Components ---
 
 function Brain() {
@@ -41,6 +42,7 @@ function Brain() {
         <meshStandardMaterial 
           color="#1a0b2e" 
           roughness={0.5} 
+          //roughness={0.9} 
           metalness={1.0} 
         />
       </mesh>
@@ -52,7 +54,10 @@ function Brain() {
           color="#9f38ff" 
           emissive="#bb00d7"
           emissiveIntensity={1.5}
-          
+          //color="#8400ff" 
+          //emissive="#785d7d"
+          //emissiveIntensity={1.5}
+          transparent
           opacity={0.4}
         />
       </mesh>
@@ -70,6 +75,7 @@ function Scene() {
         count={100}
         scale={12}
         size={16}
+        //size={6}
         speed={1}
         opacity={1}
         color="#f5ff64"
@@ -433,14 +439,20 @@ export default function InitHackathon() {
               INITIALIZE SYSTEM
               <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
             </a></LiquidGlass>
+
+          <div className="mt-12">
+            <a href="#" className="inline-flex items-center gap-2 px-8 py-4 rounded text-lg font-bold tracking-widest border border-purple-500 text-purple-500 hover:bg-purple-500 hover:text-white hover:shadow-[0_0_20px_rgba(168,85,247,0.5)] transition-all duration-300 group bg-black/20 backdrop-blur-sm">
+              INITIALIZE SYSTEM
+              <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+            </a>
           </div>
         </div>
         
         <div className="absolute bottom-10 left-1/2 transform -translate-x-1/2 animate-bounce text-gray-500">
           <ChevronDown className="w-6 h-6" />
         </div>
+        </div>
       </header>
-
       {/* Philosophy Section */}
       <section id="about" className="py-16 md:py-24 relative z-[1] bg-gradient-to-b from-transparent via-black/20 to-black/50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -474,6 +486,16 @@ export default function InitHackathon() {
                     <pre className="font-mono text-xs md:text-sm text-gray-300 overflow-x-auto whitespace-pre-wrap">
                       <Typewriter tokens={codeTokens} speed={18} />
                     </pre>
+                <pre className="font-mono text-xs md:text-sm text-gray-300 overflow-x-auto whitespace-pre-wrap">
+                  <span className="text-fuchsia-400">const</span> <span className="text-blue-400">initHackathon</span> = <span className="text-yellow-300">async</span> () ={'>'} {'{'}{'\n'}
+                  {'  '}<span className="text-fuchsia-400">await</span> <span className="text-blue-400">learn</span>(<span className="text-purple-400">'Full Stack'</span>);{'\n'}
+                  {'  '}<span className="text-fuchsia-400">await</span> <span className="text-blue-400">build</span>(<span className="text-purple-400">'MVP'</span>);{'\n'}
+                  {'  '}<span className="text-fuchsia-400">await</span> <span className="text-blue-400">deploy</span>();{'\n'}
+                  {'\n'}
+                  {'  '}<span className="text-gray-500">// Returns: A new career path</span>{'\n'}
+                  {'  '}<span className="text-fuchsia-400">return</span> <span className="text-purple-400">"Builder"</span>;{'\n'}
+                  {'}'};
+                </pre>
               </div>
             </div>
           </div>

@@ -121,6 +121,7 @@ a {
 
 .glass {
   background: linear-gradient(120deg, rgba(255, 255, 255, 0.7), rgba(47, 47, 47, 0.13));
+  background: linear-gradient(120deg, rgba(255, 140, 234, 0.7), rgba(47, 47, 47, 0.13));
   border: 1px solid rgba(255, 255, 255, 0.45);
   backdrop-filter: blur(16px);
   box-shadow: var(--glow-soft);
@@ -129,6 +130,7 @@ a {
 .dark .glass {
   background: linear-gradient(120deg, rgba(198, 198, 198, 0.234), rgba(22, 7, 33, 0.295));
   border: 1px solid rgba(255, 64, 243, 0.35);
+  border: 1px solid rgb(109, 0, 102);
   box-shadow: var(--glow-soft);
 }
 
