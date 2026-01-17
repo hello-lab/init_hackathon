@@ -88,14 +88,7 @@ export default function Navbar() {
                   Home
                 </a>
               </li>
-              <li>
-                <a 
-                  href="/info" 
-                  className={isActive('/info') ? 'active' : ''}
-                >
-                  Info
-                </a>
-              </li>
+             
               <li>
                 <a 
                   href="/updates" 
@@ -104,8 +97,18 @@ export default function Navbar() {
                   Updates
                 </a>
               </li>
+               
               
-              {user ? (
+              {/* 
+              <li>
+                <a 
+                  href="/info" 
+                  className={isActive('/info') ? 'active' : ''}
+                >
+                  Info
+                </a>
+              </li>
+              user ? (
                 <li>
                   <a 
                     href="/account" 
@@ -133,7 +136,7 @@ export default function Navbar() {
                     </a>
                   </li>
                 </>
-              )}
+              )*/}
             </ul>
           </LiquidGlass>
         </div>
