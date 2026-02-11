@@ -5,7 +5,7 @@ import crypto from 'crypto'
 export const runtime = 'nodejs'
 
 const TEAM_MEMBER_LIMIT = 6
-const DEFAULT_TEAMS_RANGE = 'Teams!A:C'
+const DEFAULT_TEAMS_RANGE = 'Teams!A:D'
 const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token'
 const GOOGLE_SHEETS_SCOPE = 'https://www.googleapis.com/auth/spreadsheets'
 
@@ -155,7 +155,7 @@ export async function POST(request) {
 		}
 
 		const baseUrl = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values`
-		const rowValues = [[team.number ?? '', team.name || '', memberEmail]]
+		const rowValues = [[team.number ?? '', team.name || '', memberEmail, memberCount]]
 
 		const appendUrl = `${baseUrl}/${encodeURIComponent(range)}:append?valueInputOption=USER_ENTERED`
 		const appendResponse = await fetch(appendUrl, {

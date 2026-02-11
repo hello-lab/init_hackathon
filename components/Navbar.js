@@ -1,7 +1,7 @@
 'use client'
 
 import { usePathname } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 import { LiquidGlass } from '@liquidglass/react';
@@ -11,7 +11,7 @@ export default function Navbar() {
   const pathname = usePathname()
   const [user, setUser] = useState(null)
   const [isMenuOpen, setIsMenuOpen] = useState(false)
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
 
   useEffect(() => {
     const getUser = async () => {
@@ -26,7 +26,7 @@ export default function Navbar() {
     })
 
     return () => subscription.unsubscribe()
-  })
+  }, [supabase])
 
   const isActive = (path) => pathname === path
 
