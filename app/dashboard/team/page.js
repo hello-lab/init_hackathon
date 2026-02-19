@@ -23,6 +23,8 @@ export default async function TeamPage() {
     team = await getTeamData(supabase, profile.team_id)
     if (team) {
       members = await getTeamMembers(supabase, team.id)
+      console.log(team)
+
     }
   }
 

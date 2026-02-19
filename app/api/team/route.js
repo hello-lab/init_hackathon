@@ -5,7 +5,7 @@ import crypto from 'crypto'
 export const runtime = 'nodejs'
 
 const TEAM_MEMBER_LIMIT = 6
-const DEFAULT_TEAMS_RANGE = 'Teams!A:C'
+const DEFAULT_TEAMS_RANGE = 'Teams!A:D'
 const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token'
 const GOOGLE_SHEETS_SCOPE = 'https://www.googleapis.com/auth/spreadsheets'
 
@@ -85,63 +85,75 @@ export async function POST(request) {
 		}
 
 		const action = String(payload?.action || 'check').trim().toLowerCase()
-		const memberId = String(payload?.memberId || '').trim()
 		const supabase = await createClient()
-		const { data: team, error } = await supabase
+
+		// Verify team exists
+		const { data: team, error: teamError } = await supabase
 			.from('teams')
-			.select('id,number, name, team_members')
+			.select('id, number, name')
 			.eq('id', teamId)
 			.single()
 
-		if (error || !team) {
+		if (teamError || !team) {
 			return NextResponse.json({ error: 'Team not found.' }, { status: 404 })
 		}
 
-		const members = Array.isArray(team.team_members) ? team.team_members : []
-		const memberCount = members.length
-		const isFull = memberCount >= TEAM_MEMBER_LIMIT
+		// Count current team members
+		const { count: memberCount, error: countError } = await supabase
+			.from('profiles')
+			.select('id', { count: 'exact', head: true })
+			.eq('team_id', teamId)
 
+		if (countError) {
+			return NextResponse.json({ error: 'Unable to fetch member count.' }, { status: 500 })
+		}
+
+		const isFull = (memberCount || 0) >= TEAM_MEMBER_LIMIT
+
+		// Mode 1: Check if team has capacity (used before joining)
 		if (action !== 'sync') {
 			return NextResponse.json({
 				ok: !isFull,
-				memberCount,
+				memberCount: memberCount || 0,
 				limit: TEAM_MEMBER_LIMIT,
 			})
 		}
 
+		// Mode 2: Sync to Google Sheets (used after joining/creating/merging)
+		const memberId = String(payload?.memberId || '').trim()
 		if (!memberId) {
-			return NextResponse.json({ error: 'Missing memberId.' }, { status: 400 })
+			return NextResponse.json({ error: 'Missing memberId for sync action.' }, { status: 400 })
 		}
 
+		// Get authenticated user to prevent unauthorized syncs
+		const { data: { user }, error: authError } = await supabase.auth.getUser()
+		if (authError || !user) {
+			return NextResponse.json({ error: 'Not authenticated.' }, { status: 401 })
+		}
+
+		// Verify the memberId being synced is either the user or they're an admin (basic auth check)
+		if (user.id !== memberId) {
+			return NextResponse.json({ error: 'Cannot sync another user to sheets.' }, { status: 403 })
+		}
+
+		// Get member email for Google Sheets
 		const { data: profile, error: profileError } = await supabase
 			.from('profiles')
 			.select('email')
 			.eq('id', memberId)
 			.single()
 
-		if (profileError) {
-			return NextResponse.json(
-				{
-					error: 'Unable to load member email.',
-					code: profileError.code,
-					details: profileError.details,
-					hint: profileError.hint,
-					message: profileError.message,
-				},
-				{ status: 500 }
-			)
+		if (profileError || !profile?.email) {
+			return NextResponse.json({ error: 'Unable to load member email.' }, { status: 404 })
 		}
 
-		const memberEmail = String(profile?.email || '').trim()
-		if (!memberEmail) {
-			return NextResponse.json({ error: 'Member email not found.' }, { status: 400 })
-		}
+		const memberEmail = String(profile.email).trim()
 
 		const sheetId = process.env.SHEET_ID
 		const range = process.env.TEAMS_SHEET_RANGE || DEFAULT_TEAMS_RANGE
 
 		if (!sheetId) {
-			return NextResponse.json({ error: 'Missing SHEET_ID' }, { status: 500 })
+			return NextResponse.json({ error: 'Missing SHEET_ID configuration.' }, { status: 500 })
 		}
 
 		let accessToken = ''
@@ -154,8 +166,9 @@ export async function POST(request) {
 			)
 		}
 
+		// Append member to Google Sheets
 		const baseUrl = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values`
-		const rowValues = [[team.number ?? '', team.name || '', memberEmail]]
+		const rowValues = [[team.number ?? '', team.name || '', memberEmail, memberCount || 0]]
 
 		const appendUrl = `${baseUrl}/${encodeURIComponent(range)}:append?valueInputOption=USER_ENTERED`
 		const appendResponse = await fetch(appendUrl, {
@@ -169,14 +182,16 @@ export async function POST(request) {
 
 		if (!appendResponse.ok) {
 			const errorText = await appendResponse.text().catch(() => '')
+			console.error('Google Sheets append failed:', errorText)
 			return NextResponse.json(
 				{ error: `Unable to append to Teams sheet. ${errorText}`.trim() },
 				{ status: 500 }
 			)
 		}
 
-		return NextResponse.json({ ok: true, memberCount, limit: TEAM_MEMBER_LIMIT })
+		return NextResponse.json({ ok: true, memberCount: memberCount || 0, limit: TEAM_MEMBER_LIMIT })
 	} catch (unexpectedError) {
+		console.error('Team API error:', unexpectedError)
 		return NextResponse.json(
 			{ error: unexpectedError.message || 'Unexpected error in team API.' },
 			{ status: 500 }

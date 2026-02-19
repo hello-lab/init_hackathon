@@ -12,14 +12,21 @@ export default function TeamCard({ team, joinUrl }) {
 
   async function getMemberCount() {
     try {
-      const { count } = await supabase
+      const { count, error } = await supabase
         .from('profiles')
-        .select('*', { count: 'exact', head: true })
+        .select('id', { count: 'exact', head: true })
         .eq('team_id', team.id)
 
+      if (error) {
+        console.error('Error fetching team members:', error)
+        setMemberCount(0)
+        return
+      }
+      
       setMemberCount(count || 0)
     } catch (error) {
       console.error('Error fetching members:', error)
+      setMemberCount(0)
     }
   }
 

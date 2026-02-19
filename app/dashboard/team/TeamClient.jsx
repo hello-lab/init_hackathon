@@ -17,55 +17,45 @@ export default function TeamClient({ user, team, members, isLeader }) {
   const [isWorking, setIsWorking] = useState(false)
   const [joinCopied, setJoinCopied] = useState(false)
   const [joinUrl, setJoinUrl] = useState('')
+  const [mergeUrl, setMergeUrl] = useState('')
+  const [mergeCopied, setMergeCopied] = useState(false)
+  const [kickingMemberId, setKickingMemberId] = useState(null)
+  const [disbanding, setDisbanding] = useState(false)
+  const [leaving, setLeaving] = useState(false)
+  const [confirmModal, setConfirmModal] = useState(null)
 
   const hasTeam = !!teamState
 
   useEffect(() => {
     if (!hasTeam || !teamState?.id) {
       setJoinUrl('')
+      setMergeUrl('')
       return
     }
 
     if (typeof window !== 'undefined') {
       setJoinUrl(`${window.location.origin}/dashboard/team/join?teamId=${teamState.id}`)
+      setMergeUrl(`${window.location.origin}/dashboard/team/merge?mergeteam=${teamState.id}`)
     }
   }, [hasTeam, teamState?.id])
 
   if (!user) return null
 
   async function fetchMembers(teamId) {
+    const teamIdString = String(teamId)
+    
+    // Fetch all profiles that belong to this team
     const { data, error } = await supabase
       .from('profiles')
-      .select('id, full_name, username, avatar_url, team_role')
-      .eq('team_id', teamId)
+      .select('id, full_name, username, avatar_url, team_role, email')
+      .eq('team_id', teamIdString)
 
-    if (error) throw error
-    return data || []
-  }
-
-  async function fetchProfileEmail(userId) {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('email')
-      .eq('id', userId)
-      .single()
-
-    if (error) throw error
-    return data?.email || null
-  }
-
-  function normalizeMemberEmails(rawEmails) {
-    if (Array.isArray(rawEmails)) return rawEmails
-    if (typeof rawEmails === 'string') {
-      try {
-        const parsed = JSON.parse(rawEmails)
-        return Array.isArray(parsed) ? parsed : null
-      } catch {
-        return null
-      }
+    if (error) {
+      console.error('Error fetching team members:', error)
+      throw error
     }
-    if (rawEmails && Array.isArray(rawEmails.emails)) return rawEmails.emails
-    return null
+
+    return data || []
   }
 
   async function handleCreateTeam(event) {
@@ -80,14 +70,23 @@ export default function TeamClient({ user, team, members, isLeader }) {
 
     try {
       setIsWorking(true)
-      const profileEmail = await fetchProfileEmail(user.id)
+      
+      // Check if user already has a team
+      const { data: userProfile } = await supabase
+        .from('profiles')
+        .select('team_id')
+        .eq('id', user.id)
+        .single()
+      
+      if (userProfile?.team_id) {
+        setFormError('You are already a member of a team. Leave your current team first to create a new one.')
+        setIsWorking(false)
+        return
+      }
+
       const createPayload = {
         name: trimmedName,
         owner_id: user.id,
-        team_members: [user.id],
-      }
-      if (profileEmail) {
-        createPayload.member_emails = [profileEmail]
       }
 
       const { data: createdTeam, error: createError } = await supabase
@@ -167,7 +166,7 @@ export default function TeamClient({ user, team, members, isLeader }) {
 
       const { data: foundTeam, error: teamError } = await supabase
         .from('teams')
-        .select('*')
+        .select('id, name')
         .eq('id', trimmedTeamId)
         .single()
 
@@ -175,37 +174,12 @@ export default function TeamClient({ user, team, members, isLeader }) {
         throw teamError || new Error('Team not found.')
       }
 
-      const existingMembers = Array.isArray(foundTeam.team_members)
-        ? foundTeam.team_members
-        : []
-      const existingEmails = normalizeMemberEmails(foundTeam.member_emails)
-
-      const profileEmail = await fetchProfileEmail(user.id)
-
       const { error: profileError } = await supabase
         .from('profiles')
         .update({ team_id: foundTeam.id, team_role: 'member' })
         .eq('id', user.id)
 
       if (profileError) throw profileError
-
-      if (!existingMembers.includes(user.id)) {
-        const updatePayload = {
-          team_members: [...existingMembers, user.id],
-        }
-        if (profileEmail && Array.isArray(existingEmails)) {
-          updatePayload.member_emails = existingEmails.includes(profileEmail)
-            ? existingEmails
-            : [...existingEmails, profileEmail]
-        }
-
-        const { error: membersError } = await supabase
-          .from('teams')
-          .update(updatePayload)
-          .eq('id', foundTeam.id)
-
-        if (membersError) throw membersError
-      }
 
       await fetch('/api/team', {
         method: 'POST',
@@ -227,8 +201,165 @@ export default function TeamClient({ user, team, members, isLeader }) {
     }
   }
 
+  async function handleKickMember(memberId) {
+    if (!teamState?.id || !memberId) return
+
+    const memberToKick = membersState.find((m) => m.id === memberId)
+    
+    setConfirmModal({
+      title: 'Kick Member',
+      message: `Are you sure you want to kick ${memberToKick?.full_name || memberToKick?.username || 'this member'} from the team?`,
+      action: async () => {
+        try {
+          setKickingMemberId(memberId)
+
+          const response = await fetch('/api/team/kick', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ teamId: teamState.id, memberId }),
+          })
+
+          const payload = await response.json()
+
+          if (!response.ok || !payload?.ok) {
+            toast.error(payload?.error || 'Unable to kick member.')
+            return
+          }
+
+          toast.success('Member kicked successfully.')
+          const nextMembers = await fetchMembers(teamState.id)
+          setMembersState(nextMembers)
+        } catch (error) {
+          toast.error(error.message || 'Unable to kick member.')
+        } finally {
+          setKickingMemberId(null)
+        }
+      },
+      confirmText: 'Kick',
+      cancelText: 'Cancel',
+      isDangerous: true,
+    })
+  }
+
+  async function handleDisbandTeam() {
+    if (!teamState?.id) return
+
+    setConfirmModal({
+      title: 'Disband Team',
+      message: `Are you sure you want to disband the team "${teamState.name}" ? This will remove all members and delete the team. This action cannot be undone.`,
+      action: async () => {
+        try {
+          setDisbanding(true)
+
+          const response = await fetch('/api/team/disband', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ teamId: teamState.id }),
+          })
+
+          const payload = await response.json()
+
+          if (!response.ok || !payload?.ok) {
+            toast.error(payload?.error || 'Unable to disband team.')
+            return
+          }
+
+          toast.success('Team disbanded successfully.')
+          setTeamState(null)
+          setMembersState([])
+          setLeaderState(false)
+        } catch (error) {
+          toast.error(error.message || 'Unable to disband team.')
+        } finally {
+          setDisbanding(false)
+        }
+      },
+      confirmText: 'Disband',
+      cancelText: 'Cancel',
+      isDangerous: true,
+    })
+  }
+
+  async function handleLeaveTeam() {
+    if (!teamState?.id) return
+
+    setConfirmModal({
+      title: 'Leave Team',
+      message: `Are you sure you want to leave the team "${teamState.name}"?`,
+      action: async () => {
+        try {
+          setLeaving(true)
+
+          const response = await fetch('/api/team/leave', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ teamId: teamState.id }),
+          })
+
+          const payload = await response.json()
+
+          if (!response.ok || !payload?.ok) {
+            toast.error(payload?.error || 'Unable to leave team.')
+            return
+          }
+
+          toast.success('You have left the team.')
+          setTeamState(null)
+          setMembersState([])
+          setLeaderState(false)
+        } catch (error) {
+          toast.error(error.message || 'Unable to leave team.')
+        } finally {
+          setLeaving(false)
+        }
+      },
+      confirmText: 'Leave',
+      cancelText: 'Cancel',
+      isDangerous: false,
+    })
+  }
+
+
   return (
     <DashboardLayout user={user}>
+      {/* Confirmation Modal */}
+      {confirmModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm bg-black/40">
+          <div className="card glass max-w-sm w-full mx-4 border-white/20">
+            <h3 className="text-lg font-bold text-white mb-3">{confirmModal.title}</h3>
+            <p className="text-slate-300 text-sm mb-6">{confirmModal.message}</p>
+            
+            <div className="flex gap-3">
+              <button
+                onClick={() => setConfirmModal(null)}
+                className="flex-1 rounded-md border border-white/20 px-4 py-2 text-sm font-semibold text-white hover:bg-white/10 transition-all"
+              >
+                {confirmModal.cancelText || 'Cancel'}
+              </button>
+              <button
+                onClick={async () => {
+                  await confirmModal.action()
+                  setConfirmModal(null)
+                }}
+                className={`flex-1 rounded-md px-4 py-2 text-sm font-semibold transition-all ${
+                  confirmModal.isDangerous
+                    ? 'bg-red-500/20 border border-red-500/40 text-red-400 hover:bg-red-500/30'
+                    : 'bg-gradient-to-r from-[#ff2fd3] to-[#23e6ff] text-white hover:opacity-90'
+                }`}
+              >
+                {confirmModal.confirmText || 'Confirm'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* 3D Background */}
       <div className="fixed inset-0 -z-10 h-full w-full opacity-20 pointer-events-none">
         <Canvas camera={{ position: [0, 5, 8] }}>
@@ -340,6 +471,17 @@ export default function TeamClient({ user, team, members, isLeader }) {
                           ) : null}
                         </div>
 
+                        {leaderState && member.id !== user.id && (
+                          <button
+                            onClick={() => handleKickMember(member.id)}
+                            disabled={kickingMemberId === member.id}
+                            className="px-3 py-1.5 rounded-md bg-red-500/10 border border-red-500/40 text-red-400 text-xs font-semibold hover:bg-red-500/20 disabled:opacity-50 transition-all"
+                            title="Remove member from team"
+                          >
+                            {kickingMemberId === member.id ? 'Removing...' : 'Kick'}
+                          </button>
+                        )}
+
                         
                       </div>
                     )
@@ -388,6 +530,7 @@ export default function TeamClient({ user, team, members, isLeader }) {
 
                   {leaderState ? (
                     <div className="flex flex-wrap items-center gap-3">
+                      <p className='text-xl font-semibold'>Member Invitation : </p>
                       <button
                         type="button"
                         onClick={async () => {
@@ -400,7 +543,9 @@ export default function TeamClient({ user, team, members, isLeader }) {
                             setFormError('Unable to copy join link. Please copy it manually.')
                           }
                         }}
-                        className="rounded-md border border-[#23e6ff] px-4 py-2 text-sm font-bold text-[#23e6ff] hover:bg-[#23e6ff]/10"
+                        disabled={membersState.length >= 6}
+                        title={membersState.length >= 6 ? 'Team full' : ''}
+                        className="rounded-md border border-[#23e6ff] px-4 py-2 text-sm font-bold text-[#23e6ff] hover:bg-[#23e6ff]/10 disabled:opacity-40 disabled:cursor-not-allowed"
                       >
                         Copy join link
                       </button>
@@ -409,6 +554,67 @@ export default function TeamClient({ user, team, members, isLeader }) {
                       ) : null}
                     </div>
                   ) : null}
+
+                  {/*{leaderState ? (
+                    <div className="flex flex-wrap items-center gap-3">
+                      <p className='text-xl font-semibold'>Merge Teams : </p>
+                      <div className="flex flex-wrap items-center gap-3">
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            setMergeCopied(false)
+                            if (!mergeUrl) return
+                            try {
+                              await navigator.clipboard.writeText(mergeUrl)
+                              setMergeCopied(true)
+                            } catch (error) {
+                              setFormError('Unable to copy merge link. Please copy it manually.')
+                            }
+                          }}
+                          disabled={membersState.length >= 6}
+                          title={membersState.length >= 6 ? 'Team full' : ''}
+                          className="rounded-md border border-[#ff2fd3] px-4 py-2 text-sm font-bold text-[#ff2fd3] hover:bg-[#ff2fd3]/10 disabled:opacity-40 disabled:cursor-not-allowed"
+                        >
+                          Copy merge link
+                        </button>
+                        
+                        {mergeCopied ? (
+                          <span className="text-xs text-emerald-400">Copied!</span>
+                        ) : null}
+                      </div>
+                      <p className='italic'>Share with leader of another team to initiate merge</p>
+                    </div>
+                  ) : null}*/}
+
+                  {!leaderState && (
+                    <div className="pt-4 border-t border-white/10">
+                      <button
+                        type="button"
+                        onClick={handleLeaveTeam}
+                        disabled={leaving}
+                        className="w-full rounded-md bg-yellow-500/10 border border-yellow-500/40 px-4 py-3 text-sm font-bold text-yellow-400 hover:bg-yellow-500/20 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                      >
+                        {leaving ? 'Leaving...' : 'Leave Team'}
+                      </button>
+                    </div>
+                  )}
+
+                  {leaderState && (
+                    <div className="pt-4 border-t border-white/10">
+                      <button
+                        type="button"
+                        onClick={handleDisbandTeam}
+                        disabled={disbanding}
+                        className="w-full rounded-md bg-red-500/10 border border-red-500/40 px-4 py-3 text-sm font-bold text-red-400 hover:bg-red-500/20 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                      >
+                        {disbanding ? 'Disbanding...' : 'Disband Team'}
+                      </button>
+                      <p className="mt-2 text-xs text-slate-400 italic">
+                        This will remove all members and delete the team permanently.
+                      </p>
+                    </div>
+                  )}
+
                 </div>
               </div>
             </div>
