@@ -432,7 +432,7 @@ export default function InitHackathon() {
               <MapPin className="w-4 h-4 text-purple-500" /> Kasturba Hall
             </div>
           </div>
-         <a href="https://eventhubcc.vit.ac.in/EventHub/">
+         <a href="/dashboard">
           <div className="mt-12 ">
             <LiquidGlass
                         borderRadius={8}
