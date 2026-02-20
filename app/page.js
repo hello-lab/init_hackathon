@@ -516,20 +516,7 @@ export default function InitHackathon() {
                 <Rocket className="w-8 h-8 text-gray-600 group-hover:text-purple-500 transition-colors animate-float" />
               </div>
               <h3 className="text-2xl font-bold mb-2">The Rising Star</h3>
-              <p className="text-gray-400 mb-8 h-12">For 1st year students. Move from static pages to dynamic web apps.</p>
-              
-              <div className="space-y-3 font-mono text-sm border-t border-white/10 pt-6">
-                {[
-                  { place: '1st Place', prize: '₹5,000' },
-                  { place: '2nd Place', prize: '₹3,000' },
-                  { place: '3rd Place', prize: '₹2,000' }
-                ].map((item, i) => (
-                  <div key={i} className="flex justify-between">
-                    <span className="text-gray-500">{item.place}</span>
-                    <span className="text-white font-bold">{item.prize}</span>
-                  </div>
-                ))}
-              </div>
+              <p className="text-gray-400 mb-8">For 1st year students. Move from static pages to dynamic web apps.</p>
             </div>
 
             {/* Open Track */}
@@ -541,20 +528,7 @@ export default function InitHackathon() {
                 <Code className="w-8 h-8 text-gray-600 group-hover:text-fuchsia-500 transition-colors animate-float-delayed" />
               </div>
               <h3 className="text-2xl font-bold mb-2">The Grand Init</h3>
-              <p className="text-gray-400 mb-8 h-12">For experienced builders. Build scalable, market-ready MVPs.</p>
-              
-              <div className="space-y-3 font-mono text-sm border-t border-white/10 pt-6">
-                {[
-                  { place: '1st Place', prize: '₹5,000' },
-                  { place: '2nd Place', prize: '₹3,000' },
-                  { place: '3rd Place', prize: '₹2,000' }
-                ].map((item, i) => (
-                  <div key={i} className="flex justify-between">
-                    <span className="text-gray-500">{item.place}</span>
-                    <span className="text-white font-bold">{item.prize}</span>
-                  </div>
-                ))}
-              </div>
+              <p className="text-gray-400 mb-8">For experienced builders. Build scalable, market-ready MVPs.</p>
             </div>
           </div>
         </div>
@@ -567,11 +541,20 @@ export default function InitHackathon() {
           
           <div className="relative timeline-line space-y-8 md:space-y-12">
             {[
-              { time: '08:00 AM', title: 'Registration & Setup', desc: 'Wi-Fi configuration & Swag', color: 'purple', align: 'right' },
+              // DAY 1
+              { time: '08:30 AM', title: 'Check-in & Registration', desc: 'QR code scanning', color: 'purple', align: 'right' },
               { time: '09:30 AM', title: 'The Seminar', desc: 'Mandatory Zero-to-One Bootcamp', color: 'fuchsia', align: 'left' },
-              { time: '12:00 PM', title: 'Hacking Begins', desc: 'Timer starts. Gong sounds.', color: 'red', align: 'right', pulse: true },
-              { time: '01:00 AM', title: 'Midnight CTF', desc: 'Capture The Flag Challenge', color: 'blue', align: 'left' },
-              { time: '15:00 PM', title: 'Awards Ceremony', desc: '₹20k Distributed', color: 'yellow', align: 'right' },
+              { time: '12:00 PM', title: 'HACKING BEGINS', desc: 'Timer starts. Gong sounds.', color: 'red', align: 'right', pulse: true },
+              { time: '01:00 PM', title: 'Lunch Break', desc: 'Head out for food', color: 'purple', align: 'left' },
+              { time: '08:00 PM', title: 'Dinner Break', desc: 'Head out for food', color: 'fuchsia', align: 'right' },
+              // DAY 2
+              { time: '12:00 AM', title: 'Midnight Snacks', desc: 'Coffee, Tea & Biscuits', color: 'blue', align: 'left' },
+              { time: '01:00 AM', title: 'CTF Challenge', desc: 'Capture The Flag Competition', color: 'blue', align: 'right' },
+              { time: '05:00 AM', title: 'Morning Tea', desc: 'Tea distribution', color: 'purple', align: 'left' },
+              { time: '07:00 AM', title: 'Breakfast Break', desc: 'Head out for food & migrate to Netaji', color: 'fuchsia', align: 'right' },
+              { time: '12:00 PM', title: 'HANDS OFF KEYBOARDS', desc: 'Submissions closed', color: 'red', align: 'left', pulse: true },
+              { time: '01:00 PM', title: 'Final Judging', desc: 'Evaluation in progress', color: 'purple', align: 'right' },
+              { time: '03:00 PM', title: 'Closing Ceremony & Awards', desc: '₹20k Prize Distribution', color: 'yellow', align: 'left' },
             ].map((item, idx) => {
               // Dynamic Tailwind classes based on item props
               const textColor = item.color === 'purple' ? 'text-purple-500' : 
