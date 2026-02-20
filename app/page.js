@@ -543,7 +543,7 @@ export default function InitHackathon() {
             {[
               // DAY 1
               { time: '08:30 AM', title: 'Check-in & Registration', desc: 'QR code scanning', color: 'purple', align: 'right' },
-              { time: '09:30 AM', title: 'The Seminar', desc: 'Mandatory Zero-to-One Bootcamp', color: 'fuchsia', align: 'left' },
+              { time: '09:30 AM', title: 'The Seminar', desc: 'Zero-to-One Bootcamp', color: 'fuchsia', align: 'left' },
               { time: '12:00 PM', title: 'HACKING BEGINS', desc: 'Timer starts. Gong sounds.', color: 'red', align: 'right', pulse: true },
               { time: '01:00 PM', title: 'Lunch Break', desc: 'Head out for food', color: 'purple', align: 'left' },
               { time: '08:00 PM', title: 'Dinner Break', desc: 'Head out for food', color: 'fuchsia', align: 'right' },
