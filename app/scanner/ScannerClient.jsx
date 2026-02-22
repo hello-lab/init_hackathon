@@ -23,6 +23,8 @@ export default function ScannerClient({ user }) {
   const [devices, setDevices] = useState([])
   const [selectedDeviceId, setSelectedDeviceId] = useState('')
   const [cameraEnabled, setCameraEnabled] = useState(false)
+  const [autoStartAttempted, setAutoStartAttempted] = useState(false)
+  const [permissionRequested, setPermissionRequested] = useState(false)
   const [marking, setMarking] = useState(false)
   const [markSuccess, setMarkSuccess] = useState('')
   const [alreadyPresent, setAlreadyPresent] = useState(false)
@@ -173,9 +175,36 @@ export default function ScannerClient({ user }) {
     }
 
     loadDevices()
-  }, [selectedDeviceId])
+  }, [selectedDeviceId, permissionRequested])
 
-  const startScanning = async () => {
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    if (permissionRequested) return
+    if (!secureContext || !supported) return
+    if (!navigator.mediaDevices?.getUserMedia) return
+
+    setPermissionRequested(true)
+
+    const requestPermission = async () => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true })
+        stream.getTracks().forEach((track) => track.stop())
+        setPermissionError('')
+      } catch (error) {
+        if (error?.name === 'NotAllowedError') {
+          setPermissionError('Camera permission blocked. Allow camera access in the browser settings.')
+        } else if (error?.name === 'NotFoundError') {
+          setPermissionError('No camera found or it is already in use by another app.')
+        } else {
+          setPermissionError(`Unable to request camera permission: ${error.message || 'Unknown error'}`)
+        }
+      }
+    }
+
+    requestPermission()
+  }, [permissionRequested, secureContext, supported])
+
+  const startScanning = useCallback(async () => {
     if (!selectedDeviceId) {
       setPermissionError('No camera selected')
       return
@@ -238,9 +267,9 @@ export default function ScannerClient({ user }) {
         setCameraEnabled(false)
       }
     }, 0)
-  }
+  }, [selectedDeviceId, lookupUser])
 
-  const stopScanning = async () => {
+  const stopScanning = useCallback(async () => {
     if (html5QrCodeRef.current?.isScanning) {
       try {
         await html5QrCodeRef.current.stop()
@@ -251,7 +280,7 @@ export default function ScannerClient({ user }) {
         console.error('Error stopping scanner:', error)
       }
     }
-  }
+  }, [])
 
   // Cleanup on unmount
   useEffect(() => {
@@ -269,7 +298,16 @@ export default function ScannerClient({ user }) {
         startScanning()
       })
     }
-  }, [selectedDeviceId])
+  }, [selectedDeviceId, cameraEnabled, startScanning, stopScanning])
+
+  useEffect(() => {
+    if (autoStartAttempted) return
+    if (!secureContext || !supported) return
+    if (!selectedDeviceId) return
+
+    setAutoStartAttempted(true)
+    startScanning()
+  }, [autoStartAttempted, secureContext, supported, selectedDeviceId, startScanning])
 
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_18%_18%,rgba(255,64,243,0.16),transparent_34%),radial-gradient(circle_at_78%_8%,rgba(33,246,255,0.2),transparent_36%),radial-gradient(circle_at_50%_80%,rgba(10,8,28,0.4),transparent_48%),#040008] px-4 py-10 text-white">
@@ -319,17 +357,16 @@ export default function ScannerClient({ user }) {
               </div>
             )}
             <div className="relative overflow-hidden rounded-xl border border-white/10 bg-black/50">
-              {cameraEnabled ? (
-                <div className="relative">
-                  <div 
-                    id="qr-reader" 
-                    className="w-full"
-                    style={{ minHeight: '300px' }}
-                  />
-                  <div className="pointer-events-none absolute inset-0 border-2 border-[#23e6ff]/40" />
-                </div>
-              ) : (
-                <div className="flex h-[300px] flex-col items-center justify-center gap-3 bg-black/80 text-sm text-slate-300">
+              <div className="relative">
+                <div
+                  id="qr-reader"
+                  className="w-full"
+                  style={{ minHeight: '300px' }}
+                />
+                <div className="pointer-events-none absolute inset-0 border-2 border-[#23e6ff]/40" />
+              </div>
+              {!cameraEnabled && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/80 text-sm text-slate-300">
                   <p>Camera preview is paused.</p>
                   <button
                     type="button"
