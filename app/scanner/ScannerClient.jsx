@@ -29,6 +29,8 @@ export default function ScannerClient({ user }) {
   const [markSuccess, setMarkSuccess] = useState('')
   const [alreadyPresent, setAlreadyPresent] = useState(false)
   const [checkingAttendance, setCheckingAttendance] = useState(false)
+  const startInProgressRef = useRef(false)
+  const lastDeviceIdRef = useRef('')
 
   const resetData = useCallback(() => {
     setScanError('')
@@ -205,10 +207,13 @@ export default function ScannerClient({ user }) {
   }, [permissionRequested, secureContext, supported])
 
   const startScanning = useCallback(async () => {
+    if (startInProgressRef.current) return
     if (!selectedDeviceId) {
       setPermissionError('No camera selected')
       return
     }
+
+    startInProgressRef.current = true
 
     // First set camera enabled so the DOM renders
     setCameraEnabled(true)
@@ -221,11 +226,12 @@ export default function ScannerClient({ user }) {
           await html5QrCodeRef.current.stop()
         }
 
-        // Create new scanner instance
-        const html5QrCode = new Html5Qrcode('qr-reader')
-        html5QrCodeRef.current = html5QrCode
+        // Reuse the same instance when possible
+        if (!html5QrCodeRef.current) {
+          html5QrCodeRef.current = new Html5Qrcode('qr-reader')
+        }
 
-        await html5QrCode.start(
+        await html5QrCodeRef.current.start(
           selectedDeviceId,
           {
             fps: 10, // Scan 10 times per second
@@ -265,6 +271,8 @@ export default function ScannerClient({ user }) {
           setPermissionError(`Unable to start scanner: ${error.message || 'Unknown error'}`)
         }
         setCameraEnabled(false)
+      } finally {
+        startInProgressRef.current = false
       }
     }, 0)
   }, [selectedDeviceId, lookupUser])
@@ -293,11 +301,13 @@ export default function ScannerClient({ user }) {
 
   // Restart scanner when device changes
   useEffect(() => {
-    if (cameraEnabled && selectedDeviceId) {
-      stopScanning().then(() => {
-        startScanning()
-      })
-    }
+    if (!cameraEnabled || !selectedDeviceId) return
+    if (lastDeviceIdRef.current === selectedDeviceId) return
+
+    lastDeviceIdRef.current = selectedDeviceId
+    stopScanning().then(() => {
+      startScanning()
+    })
   }, [selectedDeviceId, cameraEnabled, startScanning, stopScanning])
 
   useEffect(() => {
