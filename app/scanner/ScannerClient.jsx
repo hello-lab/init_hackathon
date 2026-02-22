@@ -37,6 +37,7 @@ export default function ScannerClient({ user }) {
     setScanValue('')
     setProfile(null)
     setTeamName('')
+    setTeamNumber('')
     setAlreadyPresent(false)
     setManualId('')
     setMarkSuccess('')
@@ -135,9 +136,24 @@ export default function ScannerClient({ user }) {
 
       if (teamData?.name) {
         setTeamName(teamData.name)
-      }
-      if (teamData?.number){
-        setTeamNumber(teamData.number-4)
+
+        // Fetch team number from Google Sheets
+        try {
+          const teamNumberResponse = await fetch('/api/scanner/team-number', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ teamName: teamData.name }),
+          })
+
+          if (teamNumberResponse.ok) {
+            const teamNumberData = await teamNumberResponse.json()
+            if (teamNumberData.teamNumber) {
+              setTeamNumber(teamNumberData.teamNumber)
+            }
+          }
+        } catch (error) {
+          console.error('Error fetching team number:', error)
+        }
       }
     }
 
