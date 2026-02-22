@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation'
 
 import { createClient } from '@/lib/supabase/server'
 import MergeClient from './MergeClient'
-import { getUserProfile } from '@/lib/dashboardHelpers'
+import { getUserProfile, selectTeamByIdSafe } from '@/lib/dashboardHelpers'
 
 export default async function MergeTeamPage({ searchParams }) {
   const supabase = await createClient()
@@ -25,11 +25,11 @@ export default async function MergeTeamPage({ searchParams }) {
 
   let initiatorTeam = null
   if (initiatorTeamId) {
-    const { data } = await supabase
-      .from('teams')
-      .select('id, name, is_merged')
-      .eq('id', initiatorTeamId)
-      .single()
+    const { data } = await selectTeamByIdSafe(
+      supabase,
+      initiatorTeamId,
+      'id, name, is_merged'
+    )
 
     initiatorTeam = data || null
   }
@@ -39,11 +39,11 @@ export default async function MergeTeamPage({ searchParams }) {
   let targetTeam = null
 
   if (targetTeamId) {
-    const { data } = await supabase
-      .from('teams')
-      .select('id, name, owner_id, is_merged')
-      .eq('id', targetTeamId)
-      .single()
+    const { data } = await selectTeamByIdSafe(
+      supabase,
+      targetTeamId,
+      'id, name, owner_id, is_merged'
+    )
 
     targetTeam = data || null
   }

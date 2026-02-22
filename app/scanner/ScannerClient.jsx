@@ -80,6 +80,7 @@ export default function ScannerClient({ user }) {
           userId: profile.id,
           fullName: profile.full_name || 'Unknown',
           username: profile.username || '',
+          email: profile.email || '',
           teamName: teamName || 'No Team',
           userRole: profile.role || 'participant',
         }),
@@ -113,7 +114,7 @@ export default function ScannerClient({ user }) {
 
     const { data, error } = await supabase
       .from('profiles')
-      .select('id, full_name, username, team_id, team_role, role, avatar_url')
+      .select('id, full_name, username, team_id, team_role, role, avatar_url, email')
       .eq('id', userId)
       .maybeSingle()
 

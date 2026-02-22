@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import DashboardLayout from '@/components/DashboardLayout'
 import { createClient } from '@/lib/supabase/client'
+import { selectTeamByIdSafe } from '@/lib/dashboardHelpers'
 
 export default function MergeClient({ user, initiatorTeam, initiatorTeamId, targetTeam, isLeader }) {
   const supabase = createClient()
@@ -43,11 +44,11 @@ export default function MergeClient({ user, initiatorTeam, initiatorTeamId, targ
       setIsLoading(true)
 
       try {
-        const { data, error: fetchError } = await supabase
-          .from('teams')
-          .select('id, name, is_merged')
-          .eq('id', initiatorIdState)
-          .single()
+        const { data, error: fetchError } = await selectTeamByIdSafe(
+          supabase,
+          initiatorIdState,
+          'id, name, is_merged'
+        )
 
         if (fetchError) throw fetchError
 

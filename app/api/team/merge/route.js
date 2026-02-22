@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { selectTeamByIdSafe } from '@/lib/dashboardHelpers'
 import crypto from 'crypto'
 
 export const runtime = 'nodejs'
@@ -70,11 +71,11 @@ async function getGoogleAccessToken() {
 }
 
 async function loadTeam(supabase, teamId) {
-  const { data, error } = await supabase
-    .from('teams')
-    .select('id, name, number, owner_id, is_merged')
-    .eq('id', teamId)
-    .single()
+  const { data, error } = await selectTeamByIdSafe(
+    supabase,
+    teamId,
+    'id, name, number, owner_id, is_merged'
+  )
 
   if (error || !data) {
     return { team: null, error: error || new Error('Team not found.') }
@@ -195,7 +196,7 @@ export async function POST(request) {
       .update({ is_merged: true })
       .eq('id', targetTeam.id)
 
-    if (markTargetMergedError) {
+    if (markTargetMergedError && markTargetMergedError.code !== '42703') {
       return NextResponse.json({ error: 'Unable to mark target team as merged.' }, { status: 500 })
     }
 

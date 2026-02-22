@@ -5,7 +5,7 @@ export const runtime = 'nodejs'
 
 const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token'
 const GOOGLE_SHEETS_SCOPE = 'https://www.googleapis.com/auth/spreadsheets'
-const SHEET_RANGE = 'Attendance!A:F'
+const SHEET_RANGE = 'Attendance!A:G'
 
 function base64UrlEncode(value) {
   return Buffer.from(value)
@@ -118,7 +118,7 @@ async function ensureAttendanceSheet(accessToken, sheetId) {
 
     // Add header row
     const headerResponse = await fetch(
-      `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/Attendance!A1:F1?valueInputOption=USER_ENTERED`,
+      `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/Attendance!A1:G1?valueInputOption=USER_ENTERED`,
       {
         method: 'PUT',
         headers: {
@@ -126,7 +126,7 @@ async function ensureAttendanceSheet(accessToken, sheetId) {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          values: [['User ID', 'Full Name', 'Username', 'Team Name', 'Role', 'Timestamp']],
+          values: [['User ID', 'Full Name', 'Username', 'Email', 'Team Name', 'Role', 'Timestamp']],
         }),
       }
     )
@@ -151,6 +151,7 @@ export async function POST(request) {
     const userId = String(payload?.userId || '').trim()
     const fullName = String(payload?.fullName || 'Unknown').trim()
     const username = String(payload?.username || '').trim()
+    const email = String(payload?.email || '').trim()
     const teamName = String(payload?.teamName || 'No Team').trim()
     const userRole = String(payload?.userRole || 'participant').trim()
 
@@ -184,7 +185,7 @@ export async function POST(request) {
     }
 
     const timestamp = new Date().toISOString()
-    const values = [[userId, fullName, username, teamName, userRole, timestamp]]
+    const values = [[userId, fullName, username, email, teamName, userRole, timestamp]]
 
     const appendResponse = await fetch(
       `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${SHEET_RANGE}:append?valueInputOption=USER_ENTERED`,
