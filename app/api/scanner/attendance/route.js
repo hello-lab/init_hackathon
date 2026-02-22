@@ -6,6 +6,7 @@ export const runtime = 'nodejs'
 const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token'
 const GOOGLE_SHEETS_SCOPE = 'https://www.googleapis.com/auth/spreadsheets'
 const SHEET_RANGE = 'Attendance!A:G'
+const TEAM_ASSIGN_RANGE = 'TeamAssign!A:B'
 
 function base64UrlEncode(value) {
   return Buffer.from(value)
@@ -138,6 +139,144 @@ async function ensureAttendanceSheet(accessToken, sheetId) {
   }
 }
 
+async function ensureTeamAssignSheet(accessToken, sheetId) {
+  // Get spreadsheet metadata to check if TeamAssign sheet exists
+  const metadataResponse = await fetch(
+    `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}`,
+    {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    }
+  )
+
+  if (!metadataResponse.ok) {
+    throw new Error('Failed to get spreadsheet metadata.')
+  }
+
+  const spreadsheet = await metadataResponse.json()
+  const sheets = spreadsheet.sheets || []
+  const teamAssignSheetExists = sheets.some((sheet) => sheet.properties.title === 'TeamAssign')
+
+  if (!teamAssignSheetExists) {
+    // Create new sheet named "TeamAssign"
+    const batchUpdateResponse = await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}:batchUpdate`,
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          requests: [
+            {
+              addSheet: {
+                properties: {
+                  title: 'TeamAssign',
+                  index: sheets.length,
+                },
+              },
+            },
+          ],
+        }),
+      }
+    )
+
+    if (!batchUpdateResponse.ok) {
+      const error = await batchUpdateResponse.json()
+      throw new Error(`Failed to create TeamAssign sheet: ${JSON.stringify(error)}`)
+    }
+
+    // Add header row
+    const headerResponse = await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/TeamAssign!A1:B1?valueInputOption=USER_ENTERED`,
+      {
+        method: 'PUT',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          values: [['Team Number', 'Team Name']],
+        }),
+      }
+    )
+
+    if (!headerResponse.ok) {
+      const error = await headerResponse.json()
+      throw new Error(`Failed to add headers to TeamAssign sheet: ${JSON.stringify(error)}`)
+    }
+  }
+}
+
+async function assignTeamNumber(accessToken, sheetId, teamName) {
+  if (!teamName || teamName === 'No Team') {
+    return // Skip teams with no name
+  }
+
+  try {
+    // Ensure TeamAssign sheet exists
+    await ensureTeamAssignSheet(accessToken, sheetId)
+
+    // Get existing teams from TeamAssign sheet
+    const getResponse = await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${TEAM_ASSIGN_RANGE}`,
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      }
+    )
+
+    if (!getResponse.ok) {
+      throw new Error('Failed to read TeamAssign sheet.')
+    }
+
+    const getData = await getResponse.json()
+    const rows = getData?.values || []
+
+    // Check if team already exists (skip header row)
+    const existingTeam = rows.slice(1).find((row) => row[1] === teamName)
+    if (existingTeam) {
+      return // Team already assigned, don't add again
+    }
+
+    // Find the highest team number
+    let maxTeamNumber = 0
+    for (let i = 1; i < rows.length; i++) {
+      const teamNumber = parseInt(rows[i][0])
+      if (!isNaN(teamNumber) && teamNumber > maxTeamNumber) {
+        maxTeamNumber = teamNumber
+      }
+    }
+
+    const newTeamNumber = maxTeamNumber + 1
+
+    // Append new team
+    const appendResponse = await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${TEAM_ASSIGN_RANGE}:append?valueInputOption=USER_ENTERED`,
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          values: [[newTeamNumber, teamName]],
+        }),
+      }
+    )
+
+    if (!appendResponse.ok) {
+      throw new Error('Failed to append to TeamAssign sheet.')
+    }
+  } catch (error) {
+    console.error('TeamAssign error:', error)
+    // Don't fail the entire request if team assignment fails
+  }
+}
+
 export async function POST(request) {
   try {
     let payload = null
@@ -214,6 +353,10 @@ export async function POST(request) {
     }
 
     const result = await appendResponse.json()
+
+    // Assign team number if this is the first member of the team to mark attendance
+    await assignTeamNumber(accessToken, sheetId, teamName)
+
     return NextResponse.json({
       success: true,
       message: 'User marked as present.',
