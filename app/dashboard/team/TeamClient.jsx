@@ -23,6 +23,8 @@ export default function TeamClient({ user, team, members, isLeader }) {
   const [disbanding, setDisbanding] = useState(false)
   const [leaving, setLeaving] = useState(false)
   const [confirmModal, setConfirmModal] = useState(null)
+  const [teamNumber, setTeamNumber] = useState(null)
+  const [teamNumberLoading, setTeamNumberLoading] = useState(false)
 
   const hasTeam = !!teamState
 
@@ -38,6 +40,45 @@ export default function TeamClient({ user, team, members, isLeader }) {
       setMergeUrl(`${window.location.origin}/dashboard/team/merge?mergeteam=${teamState.id}`)
     }
   }, [hasTeam, teamState?.id])
+
+  useEffect(() => {
+    if (!teamState?.name) {
+      setTeamNumber(null)
+      return
+    }
+
+    let isActive = true
+    const loadTeamNumber = async () => {
+      setTeamNumberLoading(true)
+      try {
+        const response = await fetch('/api/scanner/team-number', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ teamName: teamState.name }),
+        })
+
+        if (!response.ok) {
+          if (isActive) setTeamNumber(null)
+          return
+        }
+
+        const data = await response.json()
+        if (isActive) {
+          const parsedNumber = Number(data?.teamNumber)
+          setTeamNumber(Number.isFinite(parsedNumber) ? parsedNumber : null)
+        }
+      } catch (error) {
+        if (isActive) setTeamNumber(null)
+      } finally {
+        if (isActive) setTeamNumberLoading(false)
+      }
+    }
+
+    loadTeamNumber()
+    return () => {
+      isActive = false
+    }
+  }, [teamState?.name])
 
   if (!user) return null
 
@@ -502,7 +543,7 @@ export default function TeamClient({ user, team, members, isLeader }) {
                   <div>
                     <label className="text-xs uppercase tracking-[0.15em] text-slate-500 block mb-2">Team Number</label>
                     <div className="p-3 rounded-lg bg-white/5 border border-white/10 text-white font-semibold">
-                      {(teamState.number-4) ?? '--'}
+                      {teamNumberLoading ? 'Loading...' : teamNumber ?? '--'}
                     </div>
                   </div>
 
