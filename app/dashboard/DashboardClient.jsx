@@ -50,7 +50,7 @@ export default function DashboardClient({ user, dashboardData }) {
               </div>
             </div>
             
-            <p className="text-xs text-slate-400 mt-2">Hackathon is currently online</p>
+            <p className="text-xs text-slate-400 mt-2">Hackathon is online</p>
           </div>
 
           
