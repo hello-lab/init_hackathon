@@ -44,13 +44,13 @@ export default function DashboardClient({ user, dashboardData }) {
           <div className="card glass mb-6">
             <div className="flex items-center justify-between mb-2">
               <div><span className="text-3xl uppercase  text-white">Status : </span>
-            <span className="text-2xl font-bold text-[#23e6ff]">Yet to Begin</span></div>
+            <span className="text-2xl font-bold text-[#23e6ff]">STARTED</span></div>
               <div className={`px-3 py-1 rounded-full text-xs font-bold ${getStatusColor(dashboardData.hackathonStatus)}`}>
                 {getStatusLabel(dashboardData.hackathonStatus)}
               </div>
             </div>
             
-            <p className="text-xs text-slate-400 mt-2">Hackathon is currently offline</p>
+            <p className="text-xs text-slate-400 mt-2">Hackathon is currently online</p>
           </div>
 
           
