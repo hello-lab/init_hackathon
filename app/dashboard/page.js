@@ -12,7 +12,7 @@ import {
 async function getDashboardData(supabase, user) {
   const profile = await getUserProfile(supabase, user.id)
   const hackathonMeta = await getHackathonStatus(supabase)
-  const hackathonStatus = hackathonMeta?.status || 'not_started'
+  const hackathonStatus = 'live'
 
   let team = null
   let members = []
